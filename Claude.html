@@ -1,0 +1,1498 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snap-to-Stop Alarm</title>
+    <link rel="stylesheet" href="index.css" />
+
+    <!-- TensorFlow.js + COCO-SSD -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+  </head>
+
+  <body>
+    <section
+      id="introVideo"
+      class="intro-video"
+      aria-label="Snap-to-Stop introduction"
+      aria-modal="true"
+      role="dialog"
+    >
+      <div class="intro-video-backdrop"></div>
+      <div class="intro-video-content">
+        <div class="intro-brand-mark">
+          📸
+        </div>
+        <p class="intro-eyebrow">WELCOME TO</p>
+        <h1>Snap<span>-to-Stop</span></h1>
+        <p class="intro-subtitle">A smarter way to stay on time and on task.</p>
+
+        <div class="intro-screen">
+          <video
+            id="introVideoPlayer"
+            class="intro-video-player"
+            loop
+            autoplay
+            muted
+            playsinline
+            controls
+          >
+            <source src="alarm2.mp4" type="video/mp4" />
+            Your browser does not support the introduction video.
+          </video>
+        </div>
+
+        <div class="intro-access-box">
+          <h2>Choose how to continue</h2>
+          <p>
+            Sign in to save your alarms, or continue as a guest for this
+            session.
+          </p>
+          <div class="intro-login-actions">
+            <button
+              id="introGoogleButton"
+              class="social-login-btn google-login"
+              type="button"
+            >
+              <span aria-hidden="true">G</span> Continue with Google
+            </button>
+            <button
+              id="introFacebookButton"
+              class="social-login-btn facebook-login"
+              type="button"
+            >
+              <span aria-hidden="true">f</span> Continue with Facebook
+            </button>
+          </div>
+          <button id="guestIntroButton" class="intro-skip" type="button">
+            Continue as Guest
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="app-logo">
+          📸
+        </div>
+        <div app-logo1>
+          <h2>Snap-to-Stop</h2>
+          <small>Smart Alarm</small>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <button class="menu-item active" data-section="dashboard">
+          <span>🏠</span> Dashboard
+        </button>
+        <button class="menu-item" data-section="accounts">
+          <span>👤</span> Accounts
+        </button>
+        <button class="menu-item" data-section="alarms">
+          <span>⏰</span> Alarms
+        </button>
+        <button class="menu-item" data-section="activities">
+          <span>📚</span> Activities
+        </button>
+        <button class="menu-item" data-section="challenge">
+          <span>📸</span> Snap Challenge
+        </button>
+        <button class="menu-item" data-section="completed">
+          <span>✅</span> Completed
+        </button>
+        <button class="menu-item" data-section="statistics">
+          <span>📊</span> Statistics
+        </button>
+        <button class="menu-item" data-section="settings">
+          <span>⚙️</span> Settings
+        </button>
+        <button class="menu-item" data-section="about">
+          <span>ℹ️</span> About
+        </button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <button class="theme-button" id="sidebarThemeButton">
+          <span id="sidebarThemeIcon">🌙</span>
+          <span id="sidebarThemeText">Dark Mode</span>
+        </button>
+        <button class="nav-help-btn" id="sidebarHelpButton">
+          <span>❔</span>
+          <span>Help</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+      <header class="header">
+        <div class="header-left">
+          <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+          <div class="header-logo">
+            📸
+            <h1>Snap<span>-to-Stop</span></h1>
+          </div>
+        </div>
+        <nav class="top-navigation">
+          <button data-section="dashboard">Home</button>
+          <button data-section="accounts">Accounts</button>
+          <button data-section="alarms">Alarms</button>
+          <button data-section="activities">Activities</button>
+          <button data-section="statistics">Statistics</button>
+          <button data-section="about">About</button>
+          <button id="topHelpButton" class="nav-help-link" type="button">
+            Help
+          </button>
+        </nav>
+        <div class="header-right">
+          <div class="clock" id="currentClock">00:00:00</div>
+          <button id="mobileThemeButton" class="mobile-theme">🌙</button>
+          <div class="header-actions">
+            <button
+              id="searchButton"
+              class="header-icon-btn"
+              aria-label="Open search"
+            >
+              <span>🔍</span>
+            </button>
+            <button
+              id="helpButton"
+              class="header-icon-btn"
+              aria-label="Open help"
+            >
+              <span>❔</span>
+            </button>
+            <button
+              id="feedbackButton"
+              class="header-icon-btn feedback-button"
+              aria-label="Open feedback form"
+            >
+              <span>💬</span>
+            </button>
+            <div class="notification-wrapper">
+              <button
+                id="notificationButton"
+                class="header-icon-btn notification-button"
+                type="button"
+                aria-label="Open notifications"
+                aria-expanded="false"
+                aria-controls="notificationPanel"
+                title="Notifications"
+              >
+                <span>🔔</span>
+                <span id="notificationBadge" class="notification-badge hidden">0</span>
+              </button>
+              <section id="notificationPanel" class="notification-panel hidden" aria-label="Notifications">
+                <div class="notification-panel-header">
+                  <div>
+                    <h3>Notifications</h3>
+                    <p id="notificationSummary">All caught up</p>
+                  </div>
+                  <button id="clearNotificationsButton" class="mini-btn" type="button">Clear</button>
+                </div>
+                <div id="headerNotificationList" class="header-notification-list"></div>
+              </section>
+            </div>
+            <button
+              id="themeButton"
+              class="header-theme-btn"
+              aria-label="Toggle theme"
+            >
+              <span id="themeIcon">🌙</span>
+            </button>
+            <div class="profile-wrapper">
+              <button
+                id="profileButton"
+                class="profile-button"
+                type="button"
+                aria-label="Open account panel"
+                aria-expanded="false"
+                aria-controls="profilePanel"
+                title="Open account"
+              >
+                <span>👤</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="container">
+        <section class="page-section" id="accounts">
+          <div class="page-title">
+            <div>
+              <p class="small-title">ACCOUNT</p>
+              <h2>My Account</h2>
+              <p>Manage your Snap-to-Stop profile.</p>
+            </div>
+            <div class="page-title-icon">👤</div>
+          </div>
+
+          <div class="card account-card">
+            <div class="account-header">
+              <div class="account-avatar" id="accountAvatar">JS</div>
+              <div>
+                <h3 id="accountDisplayName">Student Account</h3>
+                <p id="accountSummaryEmail">jordan@student.com</p>
+              </div>
+            </div>
+
+            <div class="account-login-box">
+              <div>
+                <p class="small-title">ACCOUNT ACCESS</p>
+                <h3 id="accountAuthTitle">Sign in before creating an alarm</h3>
+                <p id="accountAuthMessage">
+                  Use Google or Facebook to save your alarms to your account.
+                </p>
+              </div>
+              <div class="social-login-actions">
+                <button
+                  type="button"
+                  class="social-login-btn google-login"
+                  id="googleLoginBtn"
+                >
+                  <span aria-hidden="true">G</span> Continue with Google
+                </button>
+                <button
+                  type="button"
+                  class="social-login-btn facebook-login"
+                  id="facebookLoginBtn"
+                >
+                  <span aria-hidden="true">f</span> Continue with Facebook
+                </button>
+              </div>
+              <button type="button" class="secondary-btn hidden" id="logoutBtn">
+                Log out
+              </button>
+            </div>
+
+            <form id="profileForm" class="profile-form">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="profileName">Full Name</label>
+                  <input
+                    type="text"
+                    id="profileName"
+                    placeholder="Enter your full name"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="profileEmail">Email Address</label>
+                  <input
+                    type="email"
+                    id="profileEmail"
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="profilePhone">Phone Number</label>
+                  <input
+                    type="tel"
+                    id="profilePhone"
+                    placeholder="+63 912 345 6789"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="profileMajor">Major / Course</label>
+                  <input
+                    type="text"
+                    id="profileMajor"
+                    placeholder="Computer Science"
+                    required
+                  />
+                </div>
+                <div class="form-group full-width">
+                  <label for="profileSchool">School / University</label>
+                  <input
+                    type="text"
+                    id="profileSchool"
+                    placeholder="Your school name"
+                    required
+                  />
+                </div>
+                <div class="form-group full-width">
+                  <label for="profileBio">About Me</label>
+                  <textarea
+                    id="profileBio"
+                    rows="4"
+                    placeholder="A short description about you and your study goals."
+                    required
+                  ></textarea>
+                </div>
+              </div>
+
+              <div class="account-actions">
+                <button type="submit" class="primary-btn">Save Profile</button>
+                <button
+                  type="button"
+                  class="secondary-btn"
+                  id="resetProfileBtn"
+                >
+                  Reset
+                </button>
+              </div>
+            </form>
+
+            <div class="account-tools-grid">
+              <div class="account-tool-card">
+                <div class="section-heading">
+                  <div>
+                    <h3>Account access</h3>
+                    <p>
+                      Create an account, recover access, or change your
+                      password.
+                    </p>
+                  </div>
+                </div>
+                <div class="account-actions">
+                  <button
+                    type="button"
+                    class="secondary-btn"
+                    id="openSignupBtn"
+                  >
+                    Create account
+                  </button>
+                  <button type="button" class="secondary-btn" id="openLoginBtn">
+                    Log in
+                  </button>
+                  <button
+                    type="button"
+                    class="secondary-btn"
+                    id="openForgotBtn"
+                  >
+                    Forgot password
+                  </button>
+                  <button
+                    type="button"
+                    class="secondary-btn"
+                    id="openChangePasswordBtn"
+                  >
+                    Change password
+                  </button>
+                </div>
+              </div>
+              <div class="account-tool-card">
+                <div class="section-heading">
+                  <div>
+                    <h3>Profile picture & role</h3>
+                    <p>Personalize your account and workspace permissions.</p>
+                  </div>
+                </div>
+                <div class="account-actions">
+                  <label
+                    class="secondary-btn file-button"
+                    for="profilePictureInput"
+                    >Upload picture</label
+                  >
+                  <input
+                    id="profilePictureInput"
+                    type="file"
+                    accept="image/*"
+                    hidden
+                  />
+                  <select id="profileRole" aria-label="User role">
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="customer">Customer</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="account-tools-grid">
+              <div class="account-tool-card">
+                <div class="section-heading">
+                  <div>
+                    <h3>Recent activity</h3>
+                    <p>Your latest account events.</p>
+                  </div>
+                </div>
+                <div id="activityHistory" class="account-history"></div>
+              </div>
+              <div class="account-tool-card">
+                <div class="section-heading">
+                  <div>
+                    <h3>Notifications</h3>
+                    <p>Important updates from Snap-to-Stop.</p>
+                  </div>
+                  <button
+                    type="button"
+                    class="mini-btn"
+                    id="markNotificationsRead"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div id="notificationList" class="account-history"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= DASHBOARD ================= -->
+        <section class="page-section active" id="dashboard">
+          <div class="hero">
+            <div>
+              <p class="small-title">SMART ALARM SYSTEM</p>
+              <h2>Don't just wake up. <span>Snap it!</span></h2>
+              <p>
+                Set an alarm, then complete a camera challenge to stop it.
+              </p>
+              <button class="primary-btn" data-section="alarms">
+                ⏰ Create New Alarm
+              </button>
+            </div>
+            <div class="hero-icon">📸</div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">⏰</div>
+              <div>
+                <h3 id="dashboardAlarms">0</h3>
+                <p>Upcoming Alarms</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📚</div>
+              <div>
+                <h3 id="dashboardActivities">0</h3>
+                <p>Activities</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">✅</div>
+              <div>
+                <h3 id="dashboardCompleted">0</h3>
+                <p>Completed</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🔥</div>
+              <div>
+                <h3 id="dashboardStreak">0</h3>
+                <p>Day Streak</p>
+              </div>
+            </div>
+          </div>
+
+          <section class="intro-feature" aria-labelledby="introFeatureTitle">
+            <div class="intro-feature-copy">
+              <p class="small-title">GET STARTED</p>
+              <h2 id="introFeatureTitle">
+                See how Snap-to-Stop keeps you moving.
+              </h2>
+              <p>
+                Watch the quick introduction any time to learn how camera
+                challenges turn alarms into focused action.
+              </p>
+              <button class="secondary-btn" type="button" id="watchIntroButton">
+                ▶ Watch introduction
+              </button>
+            </div>
+            <div class="intro-feature-screen">
+              <video
+                class="intro-feature-player"
+                controls
+                playsinline
+                preload="metadata"
+              >
+                <source src="alarm2.mp4" type="video/mp4" />
+                Your browser does not support the introduction video.
+              </video>
+            </div>
+          </section>
+
+          <div class="dashboard-panels">
+            <div class="card xp-card">
+              <div class="section-heading">
+                <div>
+                  <h2>Progress Level</h2>
+                  <p>Track your performance and focus.</p>
+                </div>
+              </div>
+              <div class="xp-header">
+                <div>
+                  <p class="xp-label">XP</p>
+                  <h3 id="xpCurrent">0</h3>
+                </div>
+                <div class="level-badge" id="levelBadge">Level 1</div>
+              </div>
+              <div class="xp-progress">
+                <div id="xpProgressFill"></div>
+              </div>
+              <p class="xp-caption" id="xpCaption">XP: 0 / 1000</p>
+              <p class="level-title" id="levelTitle">Level 1 – New Student</p>
+            </div>
+
+            <div class="card calendar-card">
+              <div class="section-heading">
+                <div>
+                  <h2>Calendar View</h2>
+                  <p>See homework and alarms by date.</p>
+                </div>
+              </div>
+              <div class="calendar-header">
+                <button id="prevMonth" class="mini-btn">‹</button>
+                <h3 id="calendarMonthLabel">Month</h3>
+                <button id="nextMonth" class="mini-btn">›</button>
+              </div>
+              <div class="calendar-weekdays">
+                <span>Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+              </div>
+              <div id="calendarView" class="calendar-grid"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="section-heading">
+              <div>
+                <h2>Achievements</h2>
+                <p>Unlock productivity badges.</p>
+              </div>
+            </div>
+            <div id="achievementList" class="achievement-list"></div>
+          </div>
+
+          <div class="card">
+            <div class="section-heading">
+              <div>
+                <h2>Upcoming Activities</h2>
+                <p>Next scheduled tasks.</p>
+              </div>
+              <button class="secondary-btn" data-section="activities">
+                View activities
+              </button>
+            </div>
+            <div id="dashboardUpcoming"></div>
+          </div>
+        </section>
+
+        <!-- ================= ALARMS ================= -->
+        <section class="page-section" id="alarms">
+          <div class="page-title">
+            <div>
+              <p class="small-title">SCHEDULE</p>
+              <h2>Alarm Manager</h2>
+              <p>Schedule your next task.</p>
+            </div>
+            <div class="page-title-icon">⏰</div>
+          </div>
+
+          <div class="card">
+            <div class="section-heading">
+              <div>
+                <h2>Create New Alarm</h2>
+                <p>Set when you want Snap-to-Stop to remind you.</p>
+              </div>
+            </div>
+            <div class="alert-info alarm-login-alert" id="alarmLoginAlert">
+              Sign in with Google or Facebook in Accounts before creating an
+              alarm.
+            </div>
+            <form id="alarmForm">
+              <div class="form-group">
+                <label>Activity / Homework</label>
+                <input
+                  type="text"
+                  id="activityName"
+                  placeholder="Example: Mathematics Homework"
+                  required
+                />
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="alarmDate">Date</label>
+                  <input type="date" id="alarmDate" required />
+                </div>
+                <div class="form-group">
+                  <div class="time-field-label">
+                    <label for="alarmTime">Set time</label>
+                    <div class="time-quick-options" aria-label="Quick time choices">
+                      <span class="shortcut-label">Quick time</span>
+                      <button type="button" class="schedule-chip" data-time-offset="5">+5 min</button>
+                      <button type="button" class="schedule-chip" data-time-offset="10">+10 min</button>
+                      <button type="button" class="schedule-chip" data-time-offset="15">+15 min</button>
+                      <button type="button" class="schedule-chip" data-time-offset="30">+30 min</button>
+                      <button type="button" class="schedule-chip" data-time-offset="60">+1 hour</button>
+                      <button type="button" class="schedule-chip" data-time-offset="120">+2 hours</button>
+                    </div>
+                  </div>
+                  <input type="time" id="alarmTime" required />
+                </div>
+              </div>
+              <div class="schedule-shortcuts" aria-label="Quick schedule choices">
+                <span class="shortcut-label">Quick date</span>
+                <button type="button" class="schedule-chip" data-date-offset="0">Today</button>
+                <button type="button" class="schedule-chip" data-date-offset="1">Tomorrow</button>
+                <button type="button" class="schedule-chip" data-date-offset="7">Next week</button>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Priority</label>
+                  <select id="alarmPriority">
+                    <option value="low">🟢 Low</option>
+                    <option value="medium" selected>🟡 Medium</option>
+                    <option value="high">🔴 High</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Notes</label>
+                  <input
+                    type="text"
+                    id="alarmNotes"
+                    placeholder="Optional notes"
+                  />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Challenge Difficulty</label>
+                  <select id="alarmDifficulty">
+                    <option value="relaxed">Relaxed - 90 seconds</option>
+                    <option value="easy">Easy - 60 seconds</option>
+                    <option value="normal" selected>Normal - 45 seconds</option>
+                    <option value="hard">Hard - 35 seconds</option>
+                    <option value="extreme">Extreme - 25 seconds</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Challenge Timer</label>
+                  <input id="alarmTimerPreview" type="text" value="45 seconds" readonly />
+                </div>
+              </div>
+              <button class="primary-btn" type="submit">➕ Create Alarm</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="section-heading">
+              <div>
+                <h2>Your Alarms</h2>
+                <p>Manage your scheduled alarms.</p>
+              </div>
+            </div>
+            <div id="alarmList"></div>
+          </div>
+        </section>
+
+        <!-- ================= ACTIVITIES ================= -->
+        <section class="page-section" id="activities">
+          <div class="page-title">
+            <div>
+              <p class="small-title">TASK MANAGEMENT</p>
+              <h2>Activities & Homework</h2>
+              <p>Manage scheduled and completed tasks.</p>
+            </div>
+            <div class="page-title-icon">📚</div>
+          </div>
+          <div class="card">
+            <div class="search-box">
+              🔍
+              <input
+                type="text"
+                id="activitySearch"
+                placeholder="Search activities..."
+              />
+            </div>
+              <select id="activityStatusFilter" aria-label="Filter activities">
+                <option value="all">All activities</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="completed">Completed</option>
+              </select>
+          </div>
+          <div class="activity-grid" id="activityList"></div>
+        </section>
+
+        <!-- ================= SNAP CHALLENGE (Practice) ================= -->
+        <section class="page-section" id="challenge">
+          <div class="page-title">
+            <div>
+              <p class="small-title">CAMERA CHALLENGE</p>
+              <h2>Snap Challenge</h2>
+              <p>Practice completing a Snap-to-Stop challenge.</p>
+            </div>
+            <div class="page-title-icon">
+              📸
+            </div>
+          </div>
+          <div class="challenge-practice card">
+            <div class="target-area">
+              <p>FIND THIS OBJECT</p>
+              <div class="target-object" id="practiceTarget">📕</div>
+              <h2 id="practiceTargetName">BOOK</h2>
+              <p id="challengeTimerMessage">
+                You have 60 seconds to stop the alarm.
+              </p>
+              <div class="difficulty-row">
+                <label for="challengeDifficulty">Difficulty</label>
+                <select id="challengeDifficulty">
+                  <option value="relaxed">Relaxed - 90 seconds</option>
+                  <option value="easy">Easy - 60 seconds</option>
+                  <option value="normal" selected>Normal - 45 seconds</option>
+                  <option value="hard">Hard - 35 seconds</option>
+                  <option value="extreme">Extreme - 25 seconds</option>
+                </select>
+              </div>
+              <div class="challenge-timer-box" id="practiceTimer">60s</div>
+            </div>
+            <div class="camera-container">
+              <video id="practiceCamera" autoplay playsinline></video>
+              <div class="camera-placeholder" id="practicePlaceholder">
+                📷
+                <p>Camera is not active</p>
+              </div>
+            </div>
+            <div class="camera-buttons">
+              <button class="secondary-btn" id="practiceStartCamera">
+                📷 Open Camera
+              </button>
+              <button class="capture-btn" id="practiceCapture" disabled>
+                📸 Capture
+              </button>
+            </div>
+            <p class="verification" id="practiceMessage">
+              Open the camera to begin.
+            </p>
+            <button class="secondary-btn" id="newChallenge">
+              🔄 New Random Object
+            </button>
+          </div>
+        </section>
+
+        <!-- ================= COMPLETED ================= -->
+        <section class="page-section" id="completed">
+          <div class="page-title">
+            <div>
+              <p class="small-title">HISTORY</p>
+              <h2>Completed Activities</h2>
+              <p>Your successfully completed Snap challenges.</p>
+            </div>
+            <div class="page-title-icon">✅</div>
+          </div>
+          <div class="card"><div id="completedList"></div></div>
+        </section>
+
+        <!-- ================= STATISTICS ================= -->
+        <section class="page-section" id="statistics">
+          <div class="page-title">
+            <div>
+              <p class="small-title">PERFORMANCE</p>
+              <h2>Statistics</h2>
+              <p>Track your Snap-to-Stop progress.</p>
+            </div>
+            <div class="page-title-icon">📊</div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">⏰</div>
+              <div>
+                <h3 id="statTotalAlarms">0</h3>
+                <p>Total Alarms</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">✅</div>
+              <div>
+                <h3 id="statCompleted">0</h3>
+                <p>Completed</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🎯</div>
+              <div>
+                <h3 id="statSuccess">0%</h3>
+                <p>Success Rate</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🔥</div>
+              <div>
+                <h3 id="statStreak">0</h3>
+                <p>Current Streak</p>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Progress</h2>
+            <div class="progress-container">
+              <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <p id="progressText">0% completed</p>
+          </div>
+        </section>
+
+        <!-- ================= SETTINGS ================= -->
+        <section class="page-section" id="settings">
+          <div class="page-title">
+            <div>
+              <p class="small-title">CUSTOMIZATION</p>
+              <h2>Settings</h2>
+              <p>Customize your Snap-to-Stop experience.</p>
+            </div>
+            <div class="page-title-icon">⚙️</div>
+          </div>
+          <div class="card settings-card">
+            <div class="setting-row">
+              <div>
+                <h3>🌙 Appearance</h3>
+                <p>Change between light and dark mode.</p>
+              </div>
+              <button class="secondary-btn" id="settingsTheme">
+                Toggle Theme
+              </button>
+            </div>
+            <div class="setting-row color-palette-row">
+              <div>
+                <h3>🎨 Theme Colors</h3>
+                <p>Choose your preferred color combination.</p>
+              </div>
+              <div class="theme-palette" role="group" aria-label="Theme color combinations">
+                <button class="palette-option" type="button" data-palette="classic" aria-label="Classic indigo theme" title="Classic indigo">
+                  <span class="palette-swatch palette-classic" aria-hidden="true"></span>
+                </button>
+                <button class="palette-option" type="button" data-palette="ocean" aria-label="Ocean teal theme" title="Ocean teal">
+                  <span class="palette-swatch palette-ocean" aria-hidden="true"></span>
+                </button>
+                <button class="palette-option" type="button" data-palette="sunset" aria-label="Sunset coral theme" title="Sunset coral">
+                  <span class="palette-swatch palette-sunset" aria-hidden="true"></span>
+                </button>
+                <button class="palette-option" type="button" data-palette="forest" aria-label="Forest green theme" title="Forest green">
+                  <span class="palette-swatch palette-forest" aria-hidden="true"></span>
+                </button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <h3>🔊 Alarm Sound</h3>
+                <p>Choose the default alarm ringtone.</p>
+              </div>
+              <div class="setting-control-group">
+                <select id="alarmSoundSelect" aria-label="Default alarm sound">
+                  <option value="classic">Classic</option>
+                  <option value="gentle">Gentle</option>
+                  <option value="digital">Digital</option>
+                  <option value="extreme" selected>Extreme</option>
+                  <option value="super-extreme">Super Extreme</option>
+                </select>
+                <button class="secondary-btn" id="testSound">▶ Test Sound</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <h3>🔔 Alarm Volume</h3>
+                <p>Set the alarm volume.</p>
+              </div>
+              <input
+                type="range"
+                id="volumeControl"
+                min="0"
+                max="100"
+                value="80"
+              />
+            </div>
+            <div class="setting-row">
+              <div>
+                <h3>⏱️ Snooze Duration</h3>
+                <p>Choose your snooze duration.</p>
+              </div>
+              <select id="snoozeDuration">
+                <option value="1">1 minute</option>
+                <option value="5" selected>5 minutes</option>
+                <option value="10">10 minutes</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= ABOUT ================= -->
+        <section class="page-section" id="about">
+          <div class="page-title">
+            <div>
+              <p class="small-title">ABOUT THE PROJECT</p>
+              <h2>About Snap-to-Stop</h2>
+              <p>A smart alarm system for students.</p>
+            </div>
+            <div class="page-title-icon">
+              📸
+            </div>
+          </div>
+          <div class="card about-card">
+            <h2>What is Snap-to-Stop?</h2>
+            <p>
+              Snap-to-Stop is a smart alarm website designed to help students
+              remember their homework and activities.
+            </p>
+            <p>
+              Instead of simply pressing a stop button, you must complete a
+              <strong>Snap Challenge</strong>: the app shows a random object and
+              you must capture it with your camera using real AI object
+              detection.
+            </p>
+            <h3>How it works</h3>
+            <div class="steps">
+              <div>
+                <span>1</span>
+                <p>Set an alarm</p>
+              </div>
+              <div>
+                <span>2</span>
+                <p>Wait until the time</p>
+              </div>
+              <div>
+                <span>3</span>
+                <p>Alarm starts ringing</p>
+              </div>
+              <div>
+                <span>4</span>
+                <p>A random object appears</p>
+              </div>
+              <div>
+                <span>5</span>
+                <p>Capture the correct object</p>
+              </div>
+              <div>
+                <span>6</span>
+                <p>Alarm automatically stops</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card developer-card">
+            <div class="developer-profile">
+              <div class="developer-profile-copy">
+                <p class="small-title">DEVELOPER PROFILE</p>
+                <h2>Michael Vincent Daque</h2>
+                <p class="developer-role">2nd Year · BSIT · Student Section: 21007</p>
+                <p>
+                  A student developer who designed and developed Snap-to-Stop
+                  as an Introduction to Human-Computer Interaction project.
+                </p>
+              </div>
+              <figure class="developer-acknowledgement">
+                <img
+                  id="developerPhoto"
+                  src="Developer.png"
+                  alt="Michael Vincent Daque, developer of Snap-to-Stop"
+                />
+                <figcaption>Created with care for HCI</figcaption>
+              </figure>
+            </div>
+
+            <div class="developer-details">
+              <div>
+                <span class="developer-detail-label">FIELD OF STUDY</span>
+                <strong>Bachelor of Science in Information Technology</strong>
+              </div>
+              <div>
+                <span class="developer-detail-label">PROJECT ROLE</span>
+                <strong>Designer and developer</strong>
+              </div>
+              <div>
+                <span class="developer-detail-label">PROJECT PURPOSE</span>
+                <strong>Making alarms more engaging for students</strong>
+              </div>
+              <div>
+                <span class="developer-detail-label">SCHOOL</span>
+                <strong>Bestlink College of the Philippines</strong>
+              </div>
+            </div>
+
+            <div class="developer-acknowledgement-copy">
+              <p class="small-title">ACKNOWLEDGEMENT</p>
+              <p>
+                This work acknowledges Michael Vincent Daque as the creator of
+                Snap-to-Stop and recognizes the time, study, and design work
+                invested in bringing the project to life.
+              </p>
+            </div>
+          </div>
+
+          <div class="card team-card">
+            <p class="small-title">MEET THE TEAM</p>
+            <h2>Project Team</h2>
+            <p>
+              The students who helped bring Snap-to-Stop to life alongside
+              the lead developer.
+            </p>
+
+            <div class="team-grid">
+              <div class="team-member">
+                <div class="team-member-photo">
+                  <img src="team-angeles.png" alt="Angeles Tej" />
+                </div>
+                <h3>Angeles Tej</h3>
+                <p class="team-member-role">Team Member</p>
+              </div>
+
+              <div class="team-member">
+                <div class="team-member-photo">
+                  <img src="team-tating.png" alt="Tating Johnrex" />
+                </div>
+                <h3>Tating Johnrex</h3>
+                <p class="team-member-role">Team Member</p>
+              </div>
+
+              <div class="team-member">
+                <div class="team-member-photo">
+                  <img src="team-dacumos.png" alt="Dacumos Angela" />
+                </div>
+                <h3>Dacumos Angela</h3>
+                <p class="team-member-role">Team Member</p>
+              </div>
+
+              <div class="team-member">
+                <div class="team-member-photo">
+                  <img src="team-seya.png" alt="Seya Patenia" />
+                </div>
+                <h3>Seya Patenia</h3>
+                <p class="team-member-role">Team Member</p>
+              </div>
+
+              <div class="team-member">
+                <div class="team-member-photo">
+                  <img src="team-zozane.png" alt="Zozane Diaz" />
+                </div>
+                <h3>Zozane Diaz</h3>
+                <p class="team-member-role">Team Member</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="footer-brand">
+          <span class="footer-logo">
+            📸
+          </span>
+          <div>
+            <h3>Snap-to-Stop</h3>
+            <p>Smart Alarm System</p>
+          </div>
+        </div>
+
+        <div class="footer-links">
+          <a href="#dashboard">Dashboard</a>
+          <a href="#alarms">Alarms</a>
+          <a href="#activities">Activities</a>
+          <a href="#accounts">Profile</a>
+        </div>
+
+        <div class="footer-copy">
+          <p>© 2026 Snap-to-Stop | Daque, Michael Vincent R. | HCI</p>
+        </div>
+      </footer>
+    </div>
+
+    <!-- ================= ALARM OVERLAY ================= -->
+    <div class="alarm-overlay" id="alarmOverlay">
+      <div class="alarm-box">
+        <div class="ring-animation">🔔</div>
+        <p class="alarm-label">ALARM RINGING</p>
+        <h2 id="ringingActivity">Time to study!</h2>
+        <p>Complete the Snap Challenge to stop the alarm.</p>
+
+        <div class="challenge">
+          <p class="challenge-label">FIND THIS OBJECT</p>
+          <div class="target-object" id="targetObject">📕</div>
+          <h3 id="targetName">BOOK</h3>
+          <p>Find the object and capture it with your camera.</p>
+          <div class="challenge-timer-box large" id="alarmTimer">60s</div>
+        </div>
+
+        <div class="camera-container">
+          <video id="camera" autoplay playsinline></video>
+          <div class="camera-placeholder" id="cameraPlaceholder">
+            📷
+            <p>Camera is not active</p>
+          </div>
+        </div>
+
+        <!-- Hidden canvas for AI detection -->
+        <canvas id="canvas" style="display: none"></canvas>
+
+        <div class="camera-buttons">
+          <button class="secondary-btn" id="startCamera">📷 Open Camera</button>
+          <button class="capture-btn" id="captureButton" disabled>
+            📸 Capture Object
+          </button>
+        </div>
+
+        <button class="snooze-btn" id="snoozeButton">⏱️ Snooze</button>
+        <p class="verification" id="verificationMessage">
+          Open the camera to begin.
+        </p>
+      </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="success-overlay" id="successOverlay">
+      <div class="success-box">
+        <div class="success-icon">✓</div>
+        <h2>Alarm Stopped!</h2>
+        <p id="successMessage">
+          Great job! You successfully completed the Snap-to-Stop challenge.
+        </p>
+        <button class="primary-btn" id="closeSuccess">Continue</button>
+      </div>
+    </div>
+
+    <div id="searchPanel" class="utility-panel search-panel hidden">
+      <div class="utility-header">
+        <h3>Search</h3>
+        <button class="panel-close" data-panel="searchPanel">×</button>
+      </div>
+      <input
+        id="siteSearchInput"
+        type="text"
+        placeholder="Search dashboard, alarms, activities, settings..."
+      />
+      <div id="searchResults" class="search-results"></div>
+    </div>
+
+    <button
+      id="chatbotButton"
+      class="chatbot-button"
+      type="button"
+      aria-label="Open Snap Helper"
+      aria-expanded="false"
+    >
+      <span class="chatbot-button-icon">💬</span>
+      <span>Snap Helper</span>
+    </button>
+
+    <section
+      id="helpPanel"
+      class="utility-panel chatbot-panel hidden"
+      aria-label="Snap Helper chatbot"
+    >
+      <div class="utility-header chatbot-header">
+        <div class="chatbot-title">
+          <div class="chatbot-avatar">✦</div>
+          <div>
+            <h3>Snap Helper</h3>
+            <p>Ask me about this website</p>
+          </div>
+        </div>
+        <button
+          class="panel-close"
+          data-panel="helpPanel"
+          aria-label="Close Snap Helper"
+        >
+          ×
+        </button>
+      </div>
+      <div id="chatMessages" class="chat-messages" aria-live="polite">
+        <div class="chat-message assistant-message">
+          Hi! I can help you use Snap-to-Stop. What would you like to know?
+        </div>
+      </div>
+      <div class="chat-quick-actions" aria-label="Common questions">
+        <button type="button" data-chat-question="How do I create an alarm?">
+          Create an alarm
+        </button>
+        <button type="button" data-chat-question="How do I stop an alarm?">
+          Stop an alarm
+        </button>
+        <button type="button" data-chat-question="Where can I see my progress?">
+          See my progress
+        </button>
+      </div>
+      <form id="chatForm" class="chat-form">
+        <label class="sr-only" for="chatInput"
+          >Ask Snap Helper a question</label
+        >
+        <input
+          id="chatInput"
+          type="text"
+          placeholder="Type your question..."
+          autocomplete="off"
+        />
+        <button type="submit" aria-label="Send question">➤</button>
+      </form>
+    </section>
+
+    <div id="profilePanel" class="utility-panel profile-panel hidden">
+      <div class="utility-header">
+        <h3>Profile Settings</h3>
+        <button class="panel-close" data-panel="profilePanel">×</button>
+      </div>
+
+      <form id="profilePanelForm" class="profile-form compact">
+        <div class="form-group">
+          <label for="panelProfileName">Full Name</label>
+          <input
+            type="text"
+            id="panelProfileName"
+            placeholder="Enter your full name"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="panelProfileEmail">Email</label>
+          <input
+            type="email"
+            id="panelProfileEmail"
+            placeholder="you@example.com"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="panelProfilePhone">Phone</label>
+          <input
+            type="tel"
+            id="panelProfilePhone"
+            placeholder="+63 912 345 6789"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="panelProfileSchool">School</label>
+          <input
+            type="text"
+            id="panelProfileSchool"
+            placeholder="Your school"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="panelProfileMajor">Course / Major</label>
+          <input
+            type="text"
+            id="panelProfileMajor"
+            placeholder="Computer Science"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="panelProfileBio">Bio</label>
+          <textarea
+            id="panelProfileBio"
+            rows="3"
+            placeholder="Tell us about you"
+            required
+          ></textarea>
+        </div>
+        <div class="account-actions">
+          <button type="submit" class="primary-btn">Save</button>
+          <button
+            type="button"
+            class="social-login-btn google-login"
+            id="panelGoogleBtn"
+          >
+            <span aria-hidden="true">G</span> Google
+          </button>
+          <button
+            type="button"
+            class="social-login-btn facebook-login"
+            id="panelFacebookBtn"
+          >
+            <span aria-hidden="true">f</span> Facebook
+          </button>
+          <button type="button" class="secondary-btn" id="panelGuestBtn">
+            Guest
+          </button>
+          <button
+            type="button"
+            class="secondary-btn feedback-inline-btn"
+            id="panelFeedbackBtn"
+          >
+            Feedback
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div id="feedbackModal" class="feedback-panel hidden">
+      <div class="feedback-box">
+        <div class="utility-header feedback-header">
+          <div class="feedback-title-wrap">
+            <div class="feedback-badge">★</div>
+            <div>
+              <p class="small-title feedback-eyebrow">CUSTOMER EXPERIENCE</p>
+              <h3>How was your experience?</h3>
+            </div>
+          </div>
+          <button class="panel-close" data-panel="feedbackModal">×</button>
+        </div>
+
+        <form id="feedbackForm" class="feedback-form">
+          <div id="feedbackLoginAlert" class="feedback-alert alert-info hidden">
+            <span>ℹ️</span>
+            <p>
+              You can submit feedback as a guest, or sign in to connect it to your account.
+            </p>
+          </div>
+
+          <div class="form-row two-col">
+            <div class="form-group">
+              <label for="feedbackName">Full Name</label>
+              <input type="text" id="feedbackName" placeholder="Your name" required />
+            </div>
+            <div class="form-group">
+              <label for="feedbackEmail">Email Address</label>
+              <input
+                type="email"
+                id="feedbackEmail"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Overall Satisfaction</label>
+            <div class="star-rating" aria-label="Rate your experience">
+              <button
+                type="button"
+                class="star"
+                data-value="1"
+                aria-label="1 star"
+              >
+                ★
+              </button>
+              <button
+                type="button"
+                class="star"
+                data-value="2"
+                aria-label="2 stars"
+              >
+                ★
+              </button>
+              <button
+                type="button"
+                class="star"
+                data-value="3"
+                aria-label="3 stars"
+              >
+                ★
+              </button>
+              <button
+                type="button"
+                class="star"
+                data-value="4"
+                aria-label="4 stars"
+              >
+                ★
+              </button>
+              <button
+                type="button"
+                class="star"
+                data-value="5"
+                aria-label="5 stars"
+              >
+                ★
+              </button>
+            </div>
+            <input type="hidden" id="feedbackRating" value="0" />
+            <p class="rating-label" id="ratingText">
+              Tap a star to rate your experience
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label for="feedbackMessage">Your Feedback</label>
+            <textarea
+              id="feedbackMessage"
+              rows="5"
+              placeholder="Tell us what you liked, what felt difficult, and how we can improve..."
+              minlength="10"
+              required
+            ></textarea>
+          </div>
+
+          <div class="account-actions feedback-actions">
+            <button type="submit" class="primary-btn" id="feedbackSubmitBtn">
+              Send Feedback
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div
+      id="authModal"
+      class="feedback-panel hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="authModalTitle"
+    >
+      <div class="feedback-box auth-box">
+        <div class="utility-header">
+          <div>
+            <p class="small-title">ACCOUNT ACCESS</p>
+            <h3 id="authModalTitle">Create your account</h3>
+          </div>
+          <button class="panel-close" data-panel="authModal" type="button">
+            ×
+          </button>
+        </div>
+        <form id="authForm" class="profile-form">
+          <div class="form-group" id="authNameGroup">
+            <label for="authName">Full name</label
+            ><input id="authName" type="text" required />
+          </div>
+          <div class="form-group">
+            <label for="authEmail">Email address</label
+            ><input id="authEmail" type="email" required />
+          </div>
+          <div class="form-group" id="authPasswordGroup">
+            <label for="authPassword">Password</label
+            ><input id="authPassword" type="password" minlength="6" required />
+          </div>
+          <div class="form-group" id="authConfirmGroup">
+            <label for="authConfirm">Confirm password</label
+            ><input id="authConfirm" type="password" minlength="6" />
+          </div>
+          <p id="authHelper" class="form-helper">Use at least 6 characters.</p>
+          <div class="account-actions">
+            <button type="submit" class="primary-btn" id="authSubmitBtn">
+              Create account</button
+            ><button type="button" class="secondary-btn" id="authSwitchBtn">
+              Log in instead
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay" aria-live="polite">
+      <div class="loading-spinner"></div>
+      <p>Loading your workspace...</p>
+    </div>
+    <button
+      id="backToTop"
+      class="back-to-top hidden"
+      type="button"
+      aria-label="Back to top"
+      title="Back to top"
+      aria-hidden="true"
+    >
+      ↑
+    </button>
+
+    <div id="feedbackToast" class="feedback-toast hidden" aria-live="polite">
+      <span>✓</span>
+      <p>Feedback sent successfully.</p>
+    </div>
+
+    <script src="index.js"></script>
+  </body>
+</html>
